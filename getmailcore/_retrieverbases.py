@@ -429,18 +429,18 @@ class RetrieverSkeleton(ConfigurableBase):
         return self.sorted_msgnum_msgid[i][1]
 
     def _oldmail_filename(self, mailbox):
-        assert (mailbox is None 
-                or (isinstance(mailbox, (str, unicode)) and mailbox)), (
-            'bad mailbox %s (%s)' % (mailbox, type(mailbox))
-        )
+        #assert (mailbox is None
+        #        or (isinstance(mailbox, (str, unicode)) and mailbox)), (
+        #    'bad mailbox %s (%s)' % (mailbox, type(mailbox))
+        #)
         filename = self.oldmail_filename
-        if mailbox is not None:
-            if isinstance(mailbox, str):
-                mailbox = mailbox.decode('utf-8')
-            mailbox = re.sub(STRIP_CHAR_RE, '.', mailbox)
-            mailbox = mailbox.encode('utf-8')
-            # Use oldmail file per IMAP folder
-            filename += '-' + mailbox
+        #if mailbox is not None:
+        #    if isinstance(mailbox, str):
+        #        mailbox = mailbox.decode('utf-8')
+        #    mailbox = re.sub(STRIP_CHAR_RE, '.', mailbox)
+        #    mailbox = mailbox.encode('utf-8')
+        #    # Use oldmail file per IMAP folder
+        #    filename += '-' + mailbox
         # else:
             # mailbox is None, is POP, just use filename
         return filename
@@ -542,7 +542,7 @@ class RetrieverSkeleton(ConfigurableBase):
         # non-Unix systems; only / is illegal in a Unix path component
         oldmail_filename = re.sub(
             STRIP_CHAR_RE, '-',
-            'oldmail-%(server)s-%(port)i-%(username)s' % self.conf
+            'oldmail-%(id)s' % options
         )
         self.oldmail_filename = os.path.join(self.conf['getmaildir'], 
                                              oldmail_filename)
@@ -947,6 +947,12 @@ class IMAPRetrieverBase(RetrieverSkeleton):
                        % ('%s %s' % (cmd, args), resplist) + os.linesep)
         return resplist
 
+    def _parse_imapmsgidresponse(self, line):
+        regex = re.compile(r'<(.*)>')
+        matches = regex.findall(line)
+        if matches:
+            return matches[0]
+
     def _parse_imapattrresponse(self, line):
         self.log.trace('parsing attributes response line %s' % line
                        + os.linesep)
@@ -1057,15 +1063,19 @@ class IMAPRetrieverBase(RetrieverSkeleton):
             if msgcount:
                 # Get UIDs and sizes for all messages in mailbox
                 response = self._parse_imapcmdresponse(
-                    'FETCH', '1:%d' % msgcount, '(UID RFC822.SIZE)'
+                    'FETCH', '1:%d' % msgcount, '(UID RFC822.SIZE BODY[HEADER.FIELDS (MESSAGE-ID)])'
                 )
                 for line in response:
-                    r = self._parse_imapattrresponse(line)
-                    # Don't allow / in UIDs we store, as we look for that to 
+                    if not 'UID' in line[0]:
+                        continue
+                    r = self._parse_imapattrresponse(line[0])
+                    real_msgid = self._parse_imapmsgidresponse(line[1])
+                    # Don't allow / in UIDs we store, as we look for that to
                     # detect old-style oldmail files.  Can occur with IMAP, at 
                     # least with some servers.
                     uid = r['uid'].replace('/', '-')
-                    msgid = '%s/%s' % (self.uidvalidity, uid)
+                    #msgid = '%s/%s' % (self.uidvalidity, uid)
+                    msgid = real_msgid
                     self._mboxuids[msgid] = r['uid']
                     self._mboxuidorder.append(msgid)
                     self.msgnum_by_msgid[msgid] = None

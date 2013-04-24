@@ -45,6 +45,7 @@ options_int = (
 )
 options_str = (
     'message_log',
+    'id'
 )
 
 # Unix only
