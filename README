@@ -1,3 +1,5 @@
+WARNING: This is a fork! For the original project go to http://pyropus.ca/software/getmail/
+
 getmail version 4 -- a flexible, extensible mail retrieval system with
 support for POP3, IMAP4, SSL variants of both, maildirs, mboxrd files,
 external MDAs, arbitrary message filtering, single-user and domain-mailboxes,
